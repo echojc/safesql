@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"go/types"
 	"os"
+	"regexp"
+	"strings"
 
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/loader"
@@ -16,12 +18,17 @@ import (
 	"golang.org/x/tools/go/ssa/ssautil"
 )
 
+var (
+	whitespaceRegexp = regexp.MustCompile(`([\s"]|\\n|\\t|\\r)+`)
+)
+
 func main() {
-	var verbose, quiet bool
+	var verbose, quiet, print bool
+	flag.BoolVar(&print, "p", false, "Print queries")
 	flag.BoolVar(&verbose, "v", false, "Verbose mode")
 	flag.BoolVar(&quiet, "q", false, "Only print on failure")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-q] [-v] package1 [package2 ...]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [-p] [-q] [-v] package1 [package2 ...]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -69,7 +76,14 @@ func main() {
 		os.Exit(2)
 	}
 
-	bad := FindNonConstCalls(res.CallGraph, qms)
+	bad, queries := FindNonConstCalls(res.CallGraph, qms)
+	if print {
+		for _, q := range queries {
+			fmt.Println(q)
+		}
+		return
+	}
+
 	if len(bad) == 0 {
 		if !quiet {
 			fmt.Println(`You're safe from SQL injection! Yay \o/`)
@@ -161,7 +175,7 @@ func FindMains(p *loader.Program, s *ssa.Program) []*ssa.Package {
 
 // FindNonConstCalls returns the set of callsites of the given set of methods
 // for which the "query" parameter is not a compile-time constant.
-func FindNonConstCalls(cg *callgraph.Graph, qms []*QueryMethod) []ssa.CallInstruction {
+func FindNonConstCalls(cg *callgraph.Graph, qms []*QueryMethod) ([]ssa.CallInstruction, []string) {
 	cg.DeleteSyntheticNodes()
 
 	// package database/sql has a couple helper functions which are thin
@@ -174,6 +188,7 @@ func FindNonConstCalls(cg *callgraph.Graph, qms []*QueryMethod) []ssa.CallInstru
 		okFuncs[m.SSA] = struct{}{}
 	}
 
+	queries := make([]string, 0)
 	bad := make([]ssa.CallInstruction, 0)
 	for _, m := range qms {
 		node := cg.CreateNode(m.SSA)
@@ -190,11 +205,15 @@ func FindNonConstCalls(cg *callgraph.Graph, qms []*QueryMethod) []ssa.CallInstru
 				panic("arg count mismatch")
 			}
 			v := args[m.Param]
-			if _, ok := v.(*ssa.Const); !ok {
+			if v, ok := v.(*ssa.Const); !ok {
 				bad = append(bad, edge.Site)
+			} else {
+				query := v.Value.ExactString()
+				clean := strings.TrimSpace(whitespaceRegexp.ReplaceAllString(query, " "))
+				queries = append(queries, clean)
 			}
 		}
 	}
 
-	return bad
+	return bad, queries
 }

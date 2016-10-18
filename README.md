@@ -2,16 +2,18 @@ SafeSQL
 =======
 
 SafeSQL is a static analysis tool for Go that protects against SQL injections.
+This fork adds an extra option to print the queries found by SafeSQL.
 
 
 Usage
 -----
 
 ```
-$ go get github.com/stripe/safesql
+$ go get github.com/echojc/safesql
 
 $ safesql
-Usage: safesql [-q] [-v] package1 [package2 ...]
+Usage: safesql [-p] [-q] [-v] package1 [package2 ...]
+  -p=false: Print queries
   -q=false: Only print on failure
   -v=false: Verbose mode
 
@@ -24,6 +26,10 @@ instead of building queries from strings.
 
 $ safesql example.com/a/safe/package
 You're safe from SQL injection! Yay \o/
+
+$ safesql -p example.com/a/safe/package
+SELECT * FROM foo
+SELECT * FROM bar WHERE col = $1
 ```
 
 
