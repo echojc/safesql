@@ -20,9 +20,6 @@ Usage: safesql [-p] [-q] [-v] package1 [package2 ...]
 $ safesql example.com/an/unsafe/package
 Found 1 potentially unsafe SQL statements:
 - /Users/alice/go/src/example.com/an/unsafe/package/db.go:14:19
-Please ensure that all SQL queries you use are compile-time constants.
-You should always use parameterized queries or prepared statements
-instead of building queries from strings.
 
 $ safesql example.com/a/safe/package
 You're safe from SQL injection! Yay \o/

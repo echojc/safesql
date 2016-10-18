@@ -96,9 +96,11 @@ func main() {
 		pos := p.Fset.Position(ci.Pos())
 		fmt.Printf("- %s\n", pos)
 	}
-	fmt.Println("Please ensure that all SQL queries you use are compile-time constants.")
-	fmt.Println("You should always use parameterized queries or prepared statements")
-	fmt.Println("instead of building queries from strings.")
+	if verbose {
+		fmt.Println("Please ensure that all SQL queries you use are compile-time constants.")
+		fmt.Println("You should always use parameterized queries or prepared statements")
+		fmt.Println("instead of building queries from strings.")
+	}
 	os.Exit(1)
 }
 
