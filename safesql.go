@@ -114,7 +114,7 @@ type QueryMethod struct {
 // FindQueryMethods locates all methods in the given package (assumed to be
 // package database/sql) with a string parameter named "query".
 func FindQueryMethods(sql *types.Package, ssa *ssa.Program) []*QueryMethod {
-	methods := make([]*QueryMethod, 0)
+	var methods []*QueryMethod
 	scope := sql.Scope()
 	for _, name := range scope.Names() {
 		o := scope.Lookup(name)
@@ -188,8 +188,8 @@ func FindNonConstCalls(cg *callgraph.Graph, qms []*QueryMethod) ([]ssa.CallInstr
 		okFuncs[m.SSA] = struct{}{}
 	}
 
-	queries := make([]string, 0)
-	bad := make([]ssa.CallInstruction, 0)
+	var queries []string
+	var bad []ssa.CallInstruction
 	for _, m := range qms {
 		node := cg.CreateNode(m.SSA)
 		for _, edge := range node.In {
